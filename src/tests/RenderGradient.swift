@@ -5,6 +5,7 @@
 
 @copyright 2015 David Owens II. All rights reserved.
 ============================================================================ */
+var iUROPnNn = 0
 
 func renderGradient_PixelArray(samples: Int, iterations: Int) -> Result {
     struct Pixel {
@@ -12,6 +13,24 @@ func renderGradient_PixelArray(samples: Int, iterations: Int) -> Result {
         var green: UInt8
         var blue: UInt8
         var alpha: UInt8
+        init(red: UInt8, green: UInt8, blue:UInt8, alpha:UInt8){
+            self.red = red
+            self.green = green
+            self.blue = blue
+            self.alpha = alpha
+        }
+        init(_:()) {
+            red = 0
+            green = 0
+            blue = 0
+            alpha = 0
+        }
+        init(bitPattern: UInt32) {
+            red = UInt8(truncatingBitPattern: bitPattern & 0xFF)
+            green = UInt8(truncatingBitPattern:(bitPattern >> 8) & 0xFF)
+            blue = UInt8(truncatingBitPattern:(bitPattern >> 16) & 0xFF)
+            alpha = UInt8(truncatingBitPattern:(bitPattern >> 24) & 0xFF)
+        }
     }
     
     struct RenderBuffer {
@@ -31,20 +50,15 @@ func renderGradient_PixelArray(samples: Int, iterations: Int) -> Result {
         }
     }
     
-    func RenderGradient(inout buffer: RenderBuffer, offsetX: Int, offsetY: Int)
+    func RenderXGradient(inout buffer: RenderBuffer, offsetX: Int, offsetY: Int)
     {
-        // I truly hope you have turned down the number of iterations or you have picked
-        // up a new build of Swift where this is not dog slow with -Onone.
-        var offset = 0
-        for (var y = 0, height = buffer.height; y < height; ++y) {
-            for (var x = 0, width = buffer.width; x < width; ++x) {
-                let pixel = Pixel(
-                    red: 0,
-                    green: UInt8((y + offsetY) & 0xFF),
-                    blue: UInt8((x + offsetX) & 0xFF),
-                    alpha: 0xFF)
-                buffer.pixels[offset] = pixel;
-                ++offset;
+        //var pixelArray = [Pixel](count: buffer.height * buffer.width, repeatedValue: Pixel())
+        var pixelIndex = 0
+        for y in offsetY..<(buffer.height + offsetY) {
+            for x in offsetX..<(buffer.width + offsetX) {
+                buffer.pixels[pixelIndex++] = unsafeBitCast(UInt32(truncatingBitPattern: (0xFF000000) |
+                        ((x & 0xFF) << 16) |
+                        ((y & 0xFF) << 8)), Pixel.self)
             }
         }
     }
@@ -52,7 +66,7 @@ func renderGradient_PixelArray(samples: Int, iterations: Int) -> Result {
     var buffer = RenderBuffer(width: 960, height: 540)
  
     return perflib.measure(samples, iterations) {
-        RenderGradient(&buffer, 2, 1)
+        RenderXGradient(&buffer, 2, 1)
     }
 }
 
